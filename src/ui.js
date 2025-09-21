@@ -1,7 +1,3 @@
-/**
- * Módulo UI: Maneja la interfaz de usuario.
- * Genera archivos HTML descargables en lugar de mostrar tablas en pantalla.
- */
 class UIManager {
     constructor() {
         this.fileContent = "";
@@ -22,13 +18,10 @@ class UIManager {
         this.generateInfoBtn = document.getElementById('generateInfoBtn');
         this.generateDotBtn = document.getElementById('generateDotBtn');
         this.successMessage = document.getElementById('successMessage');
-
-        // Inicializar eventos
         this.initEventListeners();
     }
 
     initEventListeners() {
-        // Evento para cargar el archivo
         this.fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -36,21 +29,19 @@ class UIManager {
                 reader.onload = (e) => {
                     this.fileContent = e.target.result;
                     this.analyzeBtn.disabled = false;
-                    console.log("✅ Archivo cargado exitosamente.");
+                    console.log("Archivo cargado exitosamente.");
                 };
                 reader.onerror = () => {
-                    alert("❌ Error al leer el archivo.");
+                    alert("Error al leer el archivo.");
                 };
                 reader.readAsText(file);
             }
         });
 
-        // Evento para analizar el archivo
         this.analyzeBtn.addEventListener('click', () => {
             this.analyzeFile();
         });
 
-        // Eventos para generar reportes
         this.generateTokensBtn.addEventListener('click', () => {
             this.generateTokensReport();
         });
@@ -73,51 +64,42 @@ class UIManager {
 
     analyzeFile() {
         if (!this.fileContent) {
-            alert("⚠️ Por favor, carga un archivo primero.");
+            alert("Por favor, carga un archivo primero.");
             return;
         }
 
-        console.log("🚀 Iniciando análisis léxico...");
+        console.log("Iniciando análisis léxico...");
 
         try {
-            // 1. LIMPIAR TODOS LOS DATOS ANTERIORES
             this.tokens = [];
             this.errors = [];
             this.tournament = null;
             this.tournamentData = null;
-
-            // 2. Ejecutar el Lexer
             this.lexer = new Lexer(this.fileContent);
             const tokens = this.lexer.analizar();
 
-            // Separar tokens válidos de errores
             this.tokens = tokens.filter(token => token.tipo !== "ERROR");
             this.errors = tokens.filter(token => token.tipo === "ERROR");
-
-            // 3. SIEMPRE intentar parsear, incluso si hay errores léxicos
-            console.log("✅ Análisis léxico completado. Iniciando parseo semántico...");
+            console.log("Análisis léxico completado. Iniciando parseo semántico...");
             this.tournament = new Tournament(this.tokens);
             const parseResult = this.tournament.parse();
 
-            // 4. Calcular estadísticas SOLO si el parseo fue exitoso
             if (parseResult.success && (!parseResult.errors || parseResult.errors.length === 0)) {
                 this.tournament.calculateStatistics();
                 this.tournamentData = this.tournament.tournamentData;
-                alert("🎉 ¡Análisis completado con éxito!");
+                alert("Análisis completado con éxito!");
             } else {
-                // Si hay errores de parseo, lo reportamos pero no detenemos el flujo
                 if (parseResult.errors && parseResult.errors.length > 0) {
                     console.error("Errores de parseo:", parseResult.errors);
                 }
-                alert("⚠️ El archivo tiene errores de sintaxis, pero puedes generar los reportes disponibles.");
+                alert("El archivo tiene errores de sintaxis, pero puedes generar los reportes disponibles.");
             }
 
-            // 5. SIEMPRE habilitar todos los botones de reportes
             this.enableAllReportButtons();
             this.successMessage.style.display = "block";
 
         } catch (error) {
-            console.error("🔥 Error fatal durante el análisis:", error);
+            console.error("Error fatal durante el análisis:", error);
             alert("Hubo un error inesperado. Por favor, revise la consola (F12).");
         }
     }
@@ -131,7 +113,6 @@ class UIManager {
         this.generateDotBtn.disabled = false;
     }
 
-    // --- Métodos para Generar y Descargar Reportes ---
 
     generateTokensReport() {
         if (this.tokens.length === 0) {
@@ -155,7 +136,7 @@ class UIManager {
     </style>
 </head>
 <body>
-    <h1>🔍 Reporte de Tokens Reconocidos</h1>
+    <h1>Reporte de Tokens Reconocidos</h1>
     <table>
         <thead>
             <tr>
@@ -206,7 +187,7 @@ class UIManager {
     </style>
 </head>
 <body>
-    <h1>❌ Reporte de Errores Léxicos</h1>
+    <h1>Reporte de Errores Léxicos</h1>
     <table>
         <thead>
             <tr>
@@ -239,7 +220,7 @@ class UIManager {
 
     generateStandingsReport() {
         if (!this.tournamentData) {
-            alert("⚠️ No hay datos válidos para generar el reporte de posiciones. El archivo puede tener errores de sintaxis.");
+            alert("No hay datos válidos para generar el reporte de posiciones. El archivo puede tener errores de sintaxis.");
             return;
         }
 
@@ -262,7 +243,7 @@ class UIManager {
     </style>
 </head>
 <body>
-    <h1>📊 Tabla de Posiciones</h1>
+    <h1>Tabla de Posiciones</h1>
     <table>
         <thead>
             <tr>
@@ -299,13 +280,13 @@ class UIManager {
             this.downloadFile("standings_report.html", htmlContent);
         } catch (error) {
             console.error("Error al generar el reporte de posiciones:", error);
-            alert("❌ Error al generar el reporte de posiciones.");
+            alert("Error al generar el reporte de posiciones.");
         }
     }
 
     generateScorersReport() {
         if (!this.tournamentData) {
-            alert("⚠️ No hay datos válidos para generar el reporte de goleadores. El archivo puede tener errores de sintaxis.");
+            alert("No hay datos válidos para generar el reporte de goleadores. El archivo puede tener errores de sintaxis.");
             return;
         }
 
@@ -328,7 +309,7 @@ class UIManager {
     </style>
 </head>
 <body>
-    <h1>⚽ Lista de Goleadores</h1>
+    <h1>Lista de Goleadores</h1>
     <table>
         <thead>
             <tr>
@@ -357,13 +338,13 @@ class UIManager {
             this.downloadFile("scorers_report.html", htmlContent);
         } catch (error) {
             console.error("Error al generar el reporte de goleadores:", error);
-            alert("❌ Error al generar el reporte de goleadores.");
+            alert("Error al generar el reporte de goleadores.");
         }
     }
 
     generateGeneralInfoReport() {
         if (!this.tournamentData) {
-            alert("⚠️ No hay datos válidos para generar el reporte de información general. El archivo puede tener errores de sintaxis.");
+            alert("No hay datos válidos para generar el reporte de información general. El archivo puede tener errores de sintaxis.");
             return;
         }
 
@@ -386,7 +367,7 @@ class UIManager {
     </style>
 </head>
 <body>
-    <h1>ℹ️ Información General del Torneo</h1>
+    <h1>Información General del Torneo</h1>
     <table>
         <thead>
             <tr>
@@ -412,13 +393,13 @@ class UIManager {
             this.downloadFile("info_report.html", htmlContent);
         } catch (error) {
             console.error("Error al generar el reporte de información general:", error);
-            alert("❌ Error al generar el reporte de información general.");
+            alert("Error al generar el reporte de información general.");
         }
     }
 
     downloadDotFile() {
         if (!this.tournamentData) {
-            alert("⚠️ No hay datos válidos para generar el archivo DOT. El archivo puede tener errores de sintaxis.");
+            alert("No hay datos válidos para generar el archivo DOT. El archivo puede tener errores de sintaxis.");
             return;
         }
 
@@ -429,13 +410,13 @@ class UIManager {
             this.downloadFile("tournament_bracket.dot", dotContent);
         } catch (error) {
             console.error("Error al generar el archivo DOT:", error);
-            alert("❌ Error al generar el archivo DOT.");
+            alert("Error al generar el archivo DOT.");
         }
     }
 
     downloadDotFile() {
         if (!this.tournamentData) {
-            alert("⚠️ No hay datos válidos para generar el archivo DOT. El archivo puede tener errores de sintaxis.");
+            alert("No hay datos válidos para generar el archivo DOT. El archivo puede tener errores de sintaxis.");
             return;
         }
 
@@ -454,7 +435,7 @@ class UIManager {
             URL.revokeObjectURL(url);
         } catch (error) {
             console.error("Error al generar el archivo DOT:", error);
-            alert("❌ Error al generar el archivo DOT. Por favor, revise la consola (F12).");
+            alert("Error al generar el archivo DOT. Por favor, revise la consola (F12).");
         }
     }
 
@@ -465,7 +446,6 @@ class UIManager {
     }
 }
 
-// Inicializar la UI cuando el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', () => {
     new UIManager();
 });

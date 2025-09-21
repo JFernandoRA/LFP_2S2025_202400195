@@ -12,7 +12,6 @@ digraph Tournament {
     torneo [label="${this.escape(this.data.name)}\\n${this.escape(this.data.venue || "")}", shape=ellipse, style=filled, fillcolor=yellow];
 `;
 
-        // --- Subgrafos por fase ---
         this.data.eliminationPhases.forEach((phase, phaseIndex) => {
             dot += `
     subgraph cluster_${phaseIndex} {
@@ -39,7 +38,6 @@ digraph Tournament {
             dot += "    }\n";
         });
 
-        // --- Conexiones ---
         this.data.eliminationPhases.forEach((phase, phaseIndex) => {
             phase.matches.forEach((match, matchIndex) => {
                 const nodeId = `match_${phaseIndex}_${matchIndex}`;
