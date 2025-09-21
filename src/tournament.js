@@ -1,6 +1,6 @@
 class Tournament {
     constructor(tokens) {
-        this.tokens = tokens;
+        this.tokens = tokens || [];
         this.tournamentData = {
             name: "",
             venue: "",
@@ -20,14 +20,14 @@ class Tournament {
             this.calculateStatistics();
             return {
                 success: true,
-                data: this.tournamentData, 
+                data: this.tournamentData,
                 errors: this.errors
             };
         } catch (error) {
             this.addError("Error de parseo", "Error interno: " + error.message, 0, 0);
             return {
                 success: false,
-                data: null, 
+                data: null,
                 errors: this.errors
             };
         }
@@ -70,7 +70,6 @@ class Tournament {
         });
     }
 
-
     parseTournamentSection() {
         this.expect("PALABRA_RESERVADA", "TORNEO");
         this.expect("LLAVE_IZQ");
@@ -102,7 +101,7 @@ class Tournament {
                     this.nextToken();
                 }
             } else {
-                this.nextToken(); 
+                this.nextToken();
             }
         }
 
@@ -123,7 +122,7 @@ class Tournament {
                     this.tournamentData.teams.push(team);
                 }
             } else {
-                this.nextToken(); 
+                this.nextToken();
             }
         }
 
@@ -151,7 +150,7 @@ class Tournament {
                 if (next && next.tipo === "COMA") {
                     this.nextToken();
                 } else {
-                    break; 
+                    break;
                 }
             }
 
@@ -364,7 +363,6 @@ class Tournament {
     }
 
     calculateStatistics() {
-        // Reiniciar estadísticas
         this.tournamentData.teams.forEach(team => {
             team.matchesPlayed = 0;
             team.matchesWon = 0;
@@ -373,7 +371,6 @@ class Tournament {
             team.goalsAgainst = 0;
         });
 
-    
         this.tournamentData.eliminationPhases.forEach(phase => {
             phase.matches.forEach(match => {
                 const team1 = this.tournamentData.teams.find(t => t.name === match.team1);
@@ -390,7 +387,7 @@ class Tournament {
 
                 if (team2) {
                     team2.matchesPlayed++;
-                    team2.goalsFor += match.goalsTeam2; 
+                    team2.goalsFor += match.goalsTeam2;
                     team2.goalsAgainst += match.goalsTeam1;
                     team2.reachedPhase = this.capitalize(phase.name);
                     if (match.winner === match.team2) team2.matchesWon++;
@@ -398,12 +395,17 @@ class Tournament {
                 }
 
                 match.scorers.forEach(scorer => {
+                    let playerFound = false;
                     for (const team of this.tournamentData.teams) {
                         const player = team.players.find(p => p.name === scorer.name);
                         if (player) {
                             player.goals.push(scorer.minute);
+                            playerFound = true;
                             break;
                         }
+                    }
+                    if (!playerFound) {
+                        console.warn(`Goleador no encontrado: ${scorer.name}`);
                     }
                 });
             });

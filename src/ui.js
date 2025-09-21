@@ -1,3 +1,7 @@
+/**
+ * Módulo UI: Maneja la interfaz de usuario.
+ * Genera archivos HTML descargables en lugar de mostrar tablas en pantalla.
+ */
 class UIManager {
     constructor() {
         this.fileContent = "";
@@ -18,11 +22,13 @@ class UIManager {
         this.generateInfoBtn = document.getElementById('generateInfoBtn');
         this.generateDotBtn = document.getElementById('generateDotBtn');
         this.successMessage = document.getElementById('successMessage');
+
+        // Inicializar eventos
         this.initEventListeners();
     }
 
     initEventListeners() {
-
+        // Evento para cargar el archivo
         this.fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
@@ -30,19 +36,21 @@ class UIManager {
                 reader.onload = (e) => {
                     this.fileContent = e.target.result;
                     this.analyzeBtn.disabled = false;
-                    console.log("Archivo cargado exitosamente.");
+                    console.log("✅ Archivo cargado exitosamente.");
                 };
                 reader.onerror = () => {
-                    alert("Error al leer el archivo.");
+                    alert("❌ Error al leer el archivo.");
                 };
                 reader.readAsText(file);
             }
         });
 
+        // Evento para analizar el archivo
         this.analyzeBtn.addEventListener('click', () => {
             this.analyzeFile();
         });
 
+        // Eventos para generar reportes
         this.generateTokensBtn.addEventListener('click', () => {
             this.generateTokensReport();
         });
@@ -65,14 +73,20 @@ class UIManager {
 
     analyzeFile() {
         if (!this.fileContent) {
-            alert("Por favor, carga un archivo primero.");
+            alert("⚠️ Por favor, carga un archivo primero.");
             return;
         }
 
-        console.log("Iniciando análisis léxico...");
+        console.log("🚀 Iniciando análisis léxico...");
 
         try {
-            // Instanciar el lexer y analizar
+            // 1. LIMPIAR TODOS LOS DATOS ANTERIORES
+            this.tokens = [];
+            this.errors = [];
+            this.tournament = null;
+            this.tournamentData = null;
+
+            // 2. Ejecutar el Lexer
             this.lexer = new Lexer(this.fileContent);
             const tokens = this.lexer.analizar();
 
@@ -80,48 +94,41 @@ class UIManager {
             this.tokens = tokens.filter(token => token.tipo !== "ERROR");
             this.errors = tokens.filter(token => token.tipo === "ERROR");
 
-            // Si hay errores léxicos, mostrar alerta
-            if (this.errors.length > 0) {
-                alert(`Se encontraron ${this.errors.length} errores léxicos. Usa el botón 'Generar Tabla de Errores' para verlos.`);
-            }
+            // 3. SIEMPRE intentar parsear, incluso si hay errores léxicos
+            console.log("✅ Análisis léxico completado. Iniciando parseo semántico...");
+            this.tournament = new Tournament(this.tokens);
+            const parseResult = this.tournament.parse();
 
-            // Si no hay errores, continuar con el parser
-            if (this.errors.length === 0) {
-                console.log("Análisis léxico completado. Iniciando parseo...");
-                this.tournament = new Tournament(this.tokens);
-                const parseResult = this.tournament.parse();
-
-                if (!parseResult.success || (parseResult.errors && parseResult.errors.length > 0)) {
-                    alert("Se encontraron errores de sintaxis. Revise la consola.");
-                    console.error("Errores de parseo:", parseResult.errors);
-                    return;
-                }
-
-                // Calcular estadísticas
+            // 4. Calcular estadísticas SOLO si el parseo fue exitoso
+            if (parseResult.success && (!parseResult.errors || parseResult.errors.length === 0)) {
                 this.tournament.calculateStatistics();
                 this.tournamentData = this.tournament.tournamentData;
+                alert("🎉 ¡Análisis completado con éxito!");
+            } else {
+                // Si hay errores de parseo, lo reportamos pero no detenemos el flujo
+                if (parseResult.errors && parseResult.errors.length > 0) {
+                    console.error("Errores de parseo:", parseResult.errors);
+                }
+                alert("⚠️ El archivo tiene errores de sintaxis, pero puedes generar los reportes disponibles.");
             }
 
-            // Habilitar botones de generación de reportes
-            this.enableReportButtons();
+            // 5. SIEMPRE habilitar todos los botones de reportes
+            this.enableAllReportButtons();
             this.successMessage.style.display = "block";
 
-            alert("Análisis completado con éxito!");
         } catch (error) {
-            console.error("Error fatal:", error);
+            console.error("🔥 Error fatal durante el análisis:", error);
             alert("Hubo un error inesperado. Por favor, revise la consola (F12).");
         }
     }
 
-    enableReportButtons() {
+    enableAllReportButtons() {
         this.generateTokensBtn.disabled = false;
         this.generateErrorsBtn.disabled = false;
-        if (this.tournamentData) {
-            this.generateStandingsBtn.disabled = false;
-            this.generateScorersBtn.disabled = false;
-            this.generateInfoBtn.disabled = false;
-            this.generateDotBtn.disabled = false;
-        }
+        this.generateStandingsBtn.disabled = false;
+        this.generateScorersBtn.disabled = false;
+        this.generateInfoBtn.disabled = false;
+        this.generateDotBtn.disabled = false;
     }
 
     // --- Métodos para Generar y Descargar Reportes ---
@@ -139,16 +146,16 @@ class UIManager {
     <meta charset="UTF-8">
     <title>Reporte de Tokens - TourneyJS</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #4a6fa5; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        h1 { color: #4a6fa5; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
         th { background-color: #4a6fa5; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>Reporte de Tokens Reconocidos</h1>
+    <h1>🔍 Reporte de Tokens Reconocidos</h1>
     <table>
         <thead>
             <tr>
@@ -190,16 +197,16 @@ class UIManager {
     <meta charset="UTF-8">
     <title>Reporte de Errores - TourneyJS</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #dc3545; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        h1 { color: #dc3545; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
         th { background-color: #dc3545; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>Reporte de Errores Léxicos</h1>
+    <h1>❌ Reporte de Errores Léxicos</h1>
     <table>
         <thead>
             <tr>
@@ -227,34 +234,35 @@ class UIManager {
 </body>
 </html>`;
 
-        this.downloadFile("errors_report.html", htmlContent);
+    this.downloadFile("errors_report.html", htmlContent);
     }
 
     generateStandingsReport() {
         if (!this.tournamentData) {
-            alert("No hay datos de torneo para generar el reporte.");
+            alert("⚠️ No hay datos válidos para generar el reporte de posiciones. El archivo puede tener errores de sintaxis.");
             return;
         }
 
-        const standings = this.tournament.generateStandingsReport();
+        try {
+            const standings = this.tournament.generateStandingsReport();
 
-        const htmlContent = `
+            const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Tabla de Posiciones - TourneyJS</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #28a745; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        h1 { color: #28a745; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
         th { background-color: #28a745; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>Tabla de Posiciones</h1>
+    <h1>📊 Tabla de Posiciones</h1>
     <table>
         <thead>
             <tr>
@@ -288,34 +296,39 @@ class UIManager {
 </body>
 </html>`;
 
-        this.downloadFile("standings_report.html", htmlContent);
+            this.downloadFile("standings_report.html", htmlContent);
+        } catch (error) {
+            console.error("Error al generar el reporte de posiciones:", error);
+            alert("❌ Error al generar el reporte de posiciones.");
+        }
     }
 
     generateScorersReport() {
         if (!this.tournamentData) {
-            alert("No hay datos de torneo para generar el reporte.");
+            alert("⚠️ No hay datos válidos para generar el reporte de goleadores. El archivo puede tener errores de sintaxis.");
             return;
         }
 
-        const scorers = this.tournament.generateTopScorersReport();
+        try {
+            const scorers = this.tournament.generateTopScorersReport();
 
-        const htmlContent = `
+            const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Lista de Goleadores - TourneyJS</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #ffc107; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        h1 { color: #ffc107; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
         th { background-color: #ffc107; color: #212529; }
         tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>Lista de Goleadores</h1>
+    <h1>⚽ Lista de Goleadores</h1>
     <table>
         <thead>
             <tr>
@@ -341,34 +354,39 @@ class UIManager {
 </body>
 </html>`;
 
-        this.downloadFile("scorers_report.html", htmlContent);
+            this.downloadFile("scorers_report.html", htmlContent);
+        } catch (error) {
+            console.error("Error al generar el reporte de goleadores:", error);
+            alert("❌ Error al generar el reporte de goleadores.");
+        }
     }
 
     generateGeneralInfoReport() {
         if (!this.tournamentData) {
-            alert("No hay datos de torneo para generar el reporte.");
+            alert("⚠️ No hay datos válidos para generar el reporte de información general. El archivo puede tener errores de sintaxis.");
             return;
         }
 
-        const info = this.tournament.generateGeneralInfoReport();
+        try {
+            const info = this.tournament.generateGeneralInfoReport();
 
-        const htmlContent = `
+            const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <title>Información General - TourneyJS</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        h1 { color: #17a2b8; }
-        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }
+        h1 { color: #17a2b8; text-align: center; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
         th { background-color: #17a2b8; color: white; }
         tr:nth-child(even) { background-color: #f9f9f9; }
     </style>
 </head>
 <body>
-    <h1>Información General del Torneo</h1>
+    <h1>ℹ️ Información General del Torneo</h1>
     <table>
         <thead>
             <tr>
@@ -391,34 +409,53 @@ class UIManager {
 </body>
 </html>`;
 
-        this.downloadFile("info_report.html", htmlContent);
+            this.downloadFile("info_report.html", htmlContent);
+        } catch (error) {
+            console.error("Error al generar el reporte de información general:", error);
+            alert("❌ Error al generar el reporte de información general.");
+        }
     }
 
     downloadDotFile() {
         if (!this.tournamentData) {
-            alert("No hay datos de torneo para generar el archivo DOT.");
+            alert("⚠️ No hay datos válidos para generar el archivo DOT. El archivo puede tener errores de sintaxis.");
             return;
         }
 
-        const dotGenerator = new GraphvizGenerator(this.tournamentData);
-        const dotContent = dotGenerator.generateDot();
+        try {
+            const dotGenerator = new GraphvizGenerator(this.tournamentData);
+            const dotContent = dotGenerator.generateDot();
 
-        this.downloadFile("tournament_bracket.dot", dotContent);
+            this.downloadFile("tournament_bracket.dot", dotContent);
+        } catch (error) {
+            console.error("Error al generar el archivo DOT:", error);
+            alert("❌ Error al generar el archivo DOT.");
+        }
     }
 
-    downloadFile(filename, content) {
-        const blob = new Blob([content], { type: 'text/html' });
-        if (filename.endsWith('.dot')) {
-            blob = new Blob([content], { type: 'text/plain' });
+    downloadDotFile() {
+        if (!this.tournamentData) {
+            alert("⚠️ No hay datos válidos para generar el archivo DOT. El archivo puede tener errores de sintaxis.");
+            return;
         }
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+
+        try {
+            const dotGenerator = new GraphvizGenerator(this.tournamentData);
+            const dotContent = dotGenerator.generateDot();
+
+            const blob = new Blob([dotContent], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'tournament_bracket.dot';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error("Error al generar el archivo DOT:", error);
+            alert("❌ Error al generar el archivo DOT. Por favor, revise la consola (F12).");
+        }
     }
 
     escapeHtml(text) {
@@ -428,6 +465,7 @@ class UIManager {
     }
 }
 
+// Inicializar la UI cuando el DOM esté completamente cargado
 document.addEventListener('DOMContentLoaded', () => {
     new UIManager();
 });

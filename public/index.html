@@ -8,23 +8,27 @@
 </head>
 <body>
     <div class="container">
-        <header><h1>TourneyJS</h1><p>Analizador Léxico para Torneos Deportivos</p></header>
+        <header><h1>🏆 TourneyJS</h1><p>Analizador Léxico para Torneos Deportivos</p></header>
+        
         <section class="upload-section">
             <h2>Cargar Archivo de Torneo</h2>
-            <input type="file" id="fileInput" accept=".txt">
-            <label for="fileInput" class="file-label">Seleccionar archivo .txt</label>
-            <button id="analyzeBtn" disabled>Analizar Archivo</button>
+            <!-- Input de archivo OCULTO -->
+            <input type="file" id="fileInput" accept=".txt" style="display: none;">
+            <!-- Label que actúa como botón personalizado -->
+            <label for="fileInput" class="file-label">📁 Seleccionar archivo .txt</label>
+            <!-- Botón para analizar -->
+            <button id="analyzeBtn" disabled>▶️ Analizar Archivo</button>
         </section>
 
         <!-- Botones para generar reportes -->
         <div class="report-buttons">
             <h2>Generar Reportes</h2>
-            <button id="generateTokensBtn" disabled>Generar Tabla de Tokens</button>
-            <button id="generateErrorsBtn" disabled>Generar Tabla de Errores</button>
-            <button id="generateStandingsBtn" disabled>Generar Tabla de Posiciones</button>
-            <button id="generateScorersBtn" disabled>Generar Lista de Goleadores</button>
-            <button id="generateInfoBtn" disabled>Generar Información General</button>
-            <button id="generateDotBtn" disabled>Generar Archivo Graphviz (.dot)</button>
+            <button id="generateTokensBtn" disabled>📄 Generar Tabla de Tokens</button>
+            <button id="generateErrorsBtn" disabled>📄 Generar Tabla de Errores</button>
+            <button id="generateStandingsBtn" disabled>📄 Generar Tabla de Posiciones</button>
+            <button id="generateScorersBtn" disabled>📄 Generar Lista de Goleadores</button>
+            <button id="generateInfoBtn" disabled>📄 Generar Información General</button>
+            <button id="generateDotBtn" disabled>📄 Generar Archivo Graphviz (.dot)</button>
         </div>
 
         <!-- Mensaje de éxito -->

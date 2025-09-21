@@ -1,32 +1,86 @@
 class GraphvizGenerator {
     constructor(tournamentData) {
-        this.tournamentData = tournamentData;
+        this.data = tournamentData;
     }
 
     generateDot() {
-        let dot = 'digraph Tournament {\n';
-        dot += '    rankdir=TB;\n';
-        dot += '    node [shape=box, style=filled, color=lightblue];\n';
-        dot += '    edge [color=black];\n\n';
+        let dot = `
+digraph Tournament {
+    rankdir=TB;
+    node [shape=box style=filled fontname="Arial"];
+    
+    torneo [label="${this.escape(this.data.name)}\\n${this.escape(this.data.venue || "")}", shape=ellipse, style=filled, fillcolor=yellow];
+`;
 
-        this.tournamentData.eliminationPhases.forEach((phase, phaseIndex) => {
+        // --- Subgrafos por fase ---
+        this.data.eliminationPhases.forEach((phase, phaseIndex) => {
+            dot += `
+    subgraph cluster_${phaseIndex} {
+        label="${this.escape(this.capitalize(phase.name))}";
+        style=filled;
+        color=${this.getPhaseColor(phase.name)};
+`;
+
             phase.matches.forEach((match, matchIndex) => {
-                const matchId = `match_${phaseIndex}_${matchIndex}`;
-                const label = `${this.capitalize(phase.name)}: ${match.team1} vs ${match.team2}\\nResultado: ${match.result}`;
-                dot += `    ${matchId} [label="${this.escape(label)}"];\n`;
+                const nodeId = `match_${phaseIndex}_${matchIndex}`;
+                const goals1 = match.goalsTeam1 !== undefined ? match.goalsTeam1 : 0;
+                const goals2 = match.goalsTeam2 !== undefined ? match.goalsTeam2 : 0;
+                const team1 = `${this.escape(match.team1)} ${goals1}`;
+                const team2 = `${this.escape(match.team2)} ${goals2}`;
+                const winner = match.winner;
+
+                let fillColor = "white";
+                if (winner === match.team1) fillColor = "lightgreen";
+                else if (winner === match.team2) fillColor = "lightcoral";
+
+                dot += `        ${nodeId} [label="${team1}\\n${team2}", fillcolor=${fillColor}];\n`;
+            });
+
+            dot += "    }\n";
+        });
+
+        // --- Conexiones ---
+        this.data.eliminationPhases.forEach((phase, phaseIndex) => {
+            phase.matches.forEach((match, matchIndex) => {
+                const nodeId = `match_${phaseIndex}_${matchIndex}`;
+
+                if (phaseIndex === 0) {
+                    dot += `    torneo -> ${nodeId};\n`;
+                }
+
+                if (match.winner) {
+                    const nextPhase = this.data.eliminationPhases[phaseIndex + 1];
+                    if (nextPhase) {
+                        const nextMatch = nextPhase.matches.find(m =>
+                            m.team1 === match.winner || m.team2 === match.winner
+                        );
+                        if (nextMatch) {
+                            const nextIndex = nextPhase.matches.indexOf(nextMatch);
+                            const nextNodeId = `match_${phaseIndex + 1}_${nextIndex}`;
+                            dot += `    ${nodeId} -> ${nextNodeId};\n`;
+                        }
+                    }
+                }
             });
         });
 
-        dot += '\n    // Conexiones (opcional, para torneos con múltiples fases)\n';
-        dot += '}\n';
+        dot += "}\n";
         return dot;
     }
 
-    capitalize(str) {
-        return str.charAt(0).toUpperCase() + str.slice(1);
+    capitalize(text) {
+        return text.charAt(0).toUpperCase() + text.slice(1);
     }
 
-    escape(str) {
-        return str.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    getPhaseColor(phaseName) {
+        const name = phaseName.toLowerCase();
+        if (name.includes("cuartos")) return "lightgrey";
+        if (name.includes("semi")) return "lightblue";
+        if (name.includes("final")) return "yellow";
+        return "white";
+    }
+
+    escape(text) {
+        return text.replace(/"/g, '\\"').replace(/\n/g, '\\n');
     }
 }
