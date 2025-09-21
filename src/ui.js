@@ -5,25 +5,31 @@ class UIManager {
         this.tournament = null;
         this.tournamentData = null;
         this.dotContent = "";
+        this.tokens = [];
+        this.errors = [];
 
         // Referencias a elementos del DOM
         this.fileInput = document.getElementById('fileInput');
         this.analyzeBtn = document.getElementById('analyzeBtn');
-        this.tabButtons = document.querySelectorAll('.tab-btn');
-        this.tabPanes = document.querySelectorAll('.tab-pane');
-        this.downloadDotBtn = document.getElementById('downloadDotBtn');
-
+        this.generateTokensBtn = document.getElementById('generateTokensBtn');
+        this.generateErrorsBtn = document.getElementById('generateErrorsBtn');
+        this.generateStandingsBtn = document.getElementById('generateStandingsBtn');
+        this.generateScorersBtn = document.getElementById('generateScorersBtn');
+        this.generateInfoBtn = document.getElementById('generateInfoBtn');
+        this.generateDotBtn = document.getElementById('generateDotBtn');
+        this.successMessage = document.getElementById('successMessage');
         this.initEventListeners();
     }
 
     initEventListeners() {
+
         this.fileInput.addEventListener('change', (event) => {
             const file = event.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     this.fileContent = e.target.result;
-                    this.analyzeBtn.disabled = false; 
+                    this.analyzeBtn.disabled = false;
                     console.log("Archivo cargado exitosamente.");
                 };
                 reader.onerror = () => {
@@ -37,25 +43,24 @@ class UIManager {
             this.analyzeFile();
         });
 
-        this.tabButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const tabId = button.getAttribute('data-tab');
-                this.switchTab(tabId);
-            });
+        this.generateTokensBtn.addEventListener('click', () => {
+            this.generateTokensReport();
         });
-
-        this.downloadDotBtn.addEventListener('click', () => {
+        this.generateErrorsBtn.addEventListener('click', () => {
+            this.generateErrorsReport();
+        });
+        this.generateStandingsBtn.addEventListener('click', () => {
+            this.generateStandingsReport();
+        });
+        this.generateScorersBtn.addEventListener('click', () => {
+            this.generateScorersReport();
+        });
+        this.generateInfoBtn.addEventListener('click', () => {
+            this.generateGeneralInfoReport();
+        });
+        this.generateDotBtn.addEventListener('click', () => {
             this.downloadDotFile();
         });
-    }
-
-    switchTab(tabId) {
-        this.tabButtons.forEach(btn => btn.classList.remove('active'));
-        this.tabPanes.forEach(pane => pane.classList.remove('active'));
-
-        // Agregar clase 'active' al botón y panel seleccionados
-        document.querySelector(`.tab-btn[data-tab="${tabId}"]`).classList.add('active');
-        document.getElementById(tabId).classList.add('active');
     }
 
     analyzeFile() {
@@ -67,91 +72,206 @@ class UIManager {
         console.log("Iniciando análisis léxico...");
 
         try {
+            // Instanciar el lexer y analizar
             this.lexer = new Lexer(this.fileContent);
             const tokens = this.lexer.analizar();
 
-            const validTokens = tokens.filter(token => token.tipo !== "ERROR");
-            const lexicalErrors = tokens.filter(token => token.tipo === "ERROR");
+            // Separar tokens válidos de errores
+            this.tokens = tokens.filter(token => token.tipo !== "ERROR");
+            this.errors = tokens.filter(token => token.tipo === "ERROR");
 
-            this.displayTokens(validTokens);
-            this.displayErrors(lexicalErrors);
-
-            if (lexicalErrors.length > 0) {
-                alert(`Se encontraron ${lexicalErrors.length} errores léxicos. Revise la pestaña 'Errores'.`);
-                this.switchTab('errors');
-                return;
+            // Si hay errores léxicos, mostrar alerta
+            if (this.errors.length > 0) {
+                alert(`Se encontraron ${this.errors.length} errores léxicos. Usa el botón 'Generar Tabla de Errores' para verlos.`);
             }
 
-            console.log("Análisis léxico completado. Iniciando parseo...");
-            this.tournament = new Tournament(validTokens);
-            const parseResult = this.tournament.parse();
+            // Si no hay errores, continuar con el parser
+            if (this.errors.length === 0) {
+                console.log("Análisis léxico completado. Iniciando parseo...");
+                this.tournament = new Tournament(this.tokens);
+                const parseResult = this.tournament.parse();
 
-            if (!parseResult.success || (parseResult.errors && parseResult.errors.length > 0)) {
-                alert("Se encontraron errores de sintaxis. Revise la consola.");
-                console.error("Errores de parseo:", parseResult.errors);
-                return;
+                if (!parseResult.success || (parseResult.errors && parseResult.errors.length > 0)) {
+                    alert("Se encontraron errores de sintaxis. Revise la consola.");
+                    console.error("Errores de parseo:", parseResult.errors);
+                    return;
+                }
+
+                // Calcular estadísticas
+                this.tournament.calculateStatistics();
+                this.tournamentData = this.tournament.tournamentData;
             }
 
-            this.tournament.calculateStatistics();
-            this.tournamentData = this.tournament.tournamentData;
+            // Habilitar botones de generación de reportes
+            this.enableReportButtons();
+            this.successMessage.style.display = "block";
 
-            this.displayStandings(this.tournament.generateStandingsReport());
-            this.displayScorers(this.tournament.generateTopScorersReport());
-            this.displayGeneralInfo(this.tournament.generateGeneralInfoReport());
-            this.generateAndDisplayDot();
-            this.downloadDotBtn.disabled = false;
-
-            alert("Análisis completado con éxito");
-            this.switchTab('standings');
+            alert("Análisis completado con éxito!");
         } catch (error) {
             console.error("Error fatal:", error);
             alert("Hubo un error inesperado. Por favor, revise la consola (F12).");
         }
     }
 
-    displayTokens(tokens) {
-        const tableBody = document.getElementById('tokensTableBody');
-        tableBody.innerHTML = '';
-        tokens.forEach((token, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+    enableReportButtons() {
+        this.generateTokensBtn.disabled = false;
+        this.generateErrorsBtn.disabled = false;
+        if (this.tournamentData) {
+            this.generateStandingsBtn.disabled = false;
+            this.generateScorersBtn.disabled = false;
+            this.generateInfoBtn.disabled = false;
+            this.generateDotBtn.disabled = false;
+        }
+    }
+
+    // --- Métodos para Generar y Descargar Reportes ---
+
+    generateTokensReport() {
+        if (this.tokens.length === 0) {
+            alert("No hay tokens para generar el reporte.");
+            return;
+        }
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Tokens - TourneyJS</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #4a6fa5; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #4a6fa5; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Tokens Reconocidos</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Lexema</th>
+                <th>Tipo</th>
+                <th>Línea</th>
+                <th>Columna</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${this.tokens.map((token, index) => `
+            <tr>
                 <td>${index + 1}</td>
                 <td>${this.escapeHtml(token.lexema)}</td>
                 <td>${token.tipo}</td>
                 <td>${token.linea}</td>
                 <td>${token.columna}</td>
-            `;
-            tableBody.appendChild(row);
-        });
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+</body>
+</html>`;
+
+        this.downloadFile("tokens_report.html", htmlContent);
     }
 
-    displayErrors(errors) {
-        const tableBody = document.getElementById('errorsTableBody');
-        tableBody.innerHTML = '';
-        if (errors.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="6">✅ No se encontraron errores léxicos.</td></tr>';
+    generateErrorsReport() {
+        if (this.errors.length === 0) {
+            alert("No se encontraron errores léxicos.");
             return;
         }
-        errors.forEach((error, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reporte de Errores - TourneyJS</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #dc3545; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #dc3545; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Reporte de Errores Léxicos</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>No.</th>
+                <th>Lexema</th>
+                <th>Tipo</th>
+                <th>Descripción</th>
+                <th>Línea</th>
+                <th>Columna</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${this.errors.map((error, index) => `
+            <tr>
                 <td>${index + 1}</td>
                 <td>${this.escapeHtml(error.lexema)}</td>
                 <td>${error.tipo}</td>
                 <td>${error.descripcion}</td>
                 <td>${error.linea}</td>
                 <td>${error.columna}</td>
-            `;
-            tableBody.appendChild(row);
-        });
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+</body>
+</html>`;
+
+        this.downloadFile("errors_report.html", htmlContent);
     }
 
-    displayStandings(standings) {
-        const tableBody = document.getElementById('standingsTableBody');
-        tableBody.innerHTML = '';
-        standings.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+    generateStandingsReport() {
+        if (!this.tournamentData) {
+            alert("No hay datos de torneo para generar el reporte.");
+            return;
+        }
+
+        const standings = this.tournament.generateStandingsReport();
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Tabla de Posiciones - TourneyJS</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #28a745; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #28a745; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Tabla de Posiciones</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Pos.</th>
+                <th>Equipo</th>
+                <th>PJ</th>
+                <th>PG</th>
+                <th>PP</th>
+                <th>GF</th>
+                <th>GC</th>
+                <th>Dif.</th>
+                <th>Fase</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${standings.map(item => `
+            <tr>
                 <td>${item.position}</td>
                 <td>${item.team}</td>
                 <td>${item.matchesPlayed}</td>
@@ -161,68 +281,140 @@ class UIManager {
                 <td>${item.goalsAgainst}</td>
                 <td>${item.goalDifference}</td>
                 <td>${item.reachedPhase}</td>
-            `;
-            tableBody.appendChild(row);
-        });
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+</body>
+</html>`;
+
+        this.downloadFile("standings_report.html", htmlContent);
     }
 
-    displayScorers(scorers) {
-        const tableBody = document.getElementById('scorersTableBody');
-        tableBody.innerHTML = '';
-        scorers.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
+    generateScorersReport() {
+        if (!this.tournamentData) {
+            alert("No hay datos de torneo para generar el reporte.");
+            return;
+        }
+
+        const scorers = this.tournament.generateTopScorersReport();
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Lista de Goleadores - TourneyJS</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #ffc107; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #ffc107; color: #212529; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Lista de Goleadores</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Pos.</th>
+                <th>Jugador</th>
+                <th>Equipo</th>
+                <th>Goles</th>
+                <th>Minutos</th>
+            </tr>
+        </thead>
+        <tbody>
+            ${scorers.map(item => `
+            <tr>
                 <td>${item.position}</td>
                 <td>${item.player}</td>
                 <td>${item.team}</td>
                 <td>${item.goals}</td>
                 <td>${item.minutes}</td>
-            `;
-            tableBody.appendChild(row);
-        });
+            </tr>
+            `).join('')}
+        </tbody>
+    </table>
+</body>
+</html>`;
+
+        this.downloadFile("scorers_report.html", htmlContent);
     }
 
-    displayGeneralInfo(info) {
-        const tableBody = document.getElementById('infoTableBody');
-        tableBody.innerHTML = '';
-        const infoMap = [
-            { key: "Nombre del Torneo", value: info.tournamentName },
-            { key: "Sede", value: info.venue || "No especificada" },
-            { key: "Equipos Participantes", value: info.totalTeams },
-            { key: "Total de Partidos", value: info.totalMatches },
-            { key: "Partidos Completados", value: info.completedMatches },
-            { key: "Total de Goles", value: info.totalGoals },
-            { key: "Promedio Goles/Partido", value: info.averageGoalsPerMatch },
-            { key: "Edad Promedio Jugadores", value: `${info.averagePlayerAge} años` },
-            { key: "Fase Actual", value: info.currentPhase }
-        ];
-        infoMap.forEach(item => {
-            const row = document.createElement('tr');
-            row.innerHTML = `<td>${item.key}</td><td>${item.value}</td>`;
-            tableBody.appendChild(row);
-        });
-    }
-
-    generateAndDisplayDot() {
+    generateGeneralInfoReport() {
         if (!this.tournamentData) {
-            console.warn("No hay datos de torneo para generar DOT.");
+            alert("No hay datos de torneo para generar el reporte.");
             return;
         }
-        const dotGenerator = new GraphvizGenerator(this.tournamentData);
-        this.dotContent = dotGenerator.generateDot();
-        document.getElementById('dotContent').textContent = this.dotContent;
+
+        const info = this.tournament.generateGeneralInfoReport();
+
+        const htmlContent = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Información General - TourneyJS</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        h1 { color: #17a2b8; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th, td { padding: 12px; text-align: left; border: 1px solid #ddd; }
+        th { background-color: #17a2b8; color: white; }
+        tr:nth-child(even) { background-color: #f9f9f9; }
+    </style>
+</head>
+<body>
+    <h1>Información General del Torneo</h1>
+    <table>
+        <thead>
+            <tr>
+                <th>Estadística</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr><td>Nombre del Torneo</td><td>${info.tournamentName}</td></tr>
+            <tr><td>Sede</td><td>${info.venue || "No especificada"}</td></tr>
+            <tr><td>Equipos Participantes</td><td>${info.totalTeams}</td></tr>
+            <tr><td>Total de Partidos</td><td>${info.totalMatches}</td></tr>
+            <tr><td>Partidos Completados</td><td>${info.completedMatches}</td></tr>
+            <tr><td>Total de Goles</td><td>${info.totalGoals}</td></tr>
+            <tr><td>Promedio Goles/Partido</td><td>${info.averageGoalsPerMatch}</td></tr>
+            <tr><td>Edad Promedio Jugadores</td><td>${info.averagePlayerAge} años</td></tr>
+            <tr><td>Fase Actual</td><td>${info.currentPhase}</td></tr>
+        </tbody>
+    </table>
+</body>
+</html>`;
+
+        this.downloadFile("info_report.html", htmlContent);
     }
 
     downloadDotFile() {
-        if (!this.dotContent) {
-            alert("No hay contenido DOT para descargar.");
+        if (!this.tournamentData) {
+            alert("No hay datos de torneo para generar el archivo DOT.");
             return;
         }
-        const blob = new Blob([this.dotContent], { type: 'text/plain' });
+
+        const dotGenerator = new GraphvizGenerator(this.tournamentData);
+        const dotContent = dotGenerator.generateDot();
+
+        this.downloadFile("tournament_bracket.dot", dotContent);
+    }
+
+    downloadFile(filename, content) {
+        const blob = new Blob([content], { type: 'text/html' });
+        if (filename.endsWith('.dot')) {
+            blob = new Blob([content], { type: 'text/plain' });
+        }
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = 'tournament_bracket.dot';
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

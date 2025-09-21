@@ -14,43 +14,25 @@
             <input type="file" id="fileInput" accept=".txt">
             <button id="analyzeBtn" disabled>Analizar Archivo</button>
         </section>
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="tokens">Tokens</button>
-            <button class="tab-btn" data-tab="errors">Errores</button>
-            <button class="tab-btn" data-tab="standings">Posiciones</button>
-            <button class="tab-btn" data-tab="scorers">Goleadores</button>
-            <button class="tab-btn" data-tab="info">Info General</button>
-            <button class="tab-btn" data-tab="graphviz">Exportar Graphviz</button>
+
+        <!-- Botones para generar reportes -->
+        <div class="report-buttons">
+            <h2>Generar Reportes</h2>
+            <button id="generateTokensBtn" disabled>Generar Tabla de Tokens</button>
+            <button id="generateErrorsBtn" disabled>Generar Tabla de Errores</button>
+            <button id="generateStandingsBtn" disabled>Generar Tabla de Posiciones</button>
+            <button id="generateScorersBtn" disabled>Generar Lista de Goleadores</button>
+            <button id="generateInfoBtn" disabled>Generar Información General</button>
+            <button id="generateDotBtn" disabled>Generar Archivo Graphviz (.dot)</button>
         </div>
-        <div class="tab-content">
-            <div id="tokens" class="tab-pane active">
-                <h2>Tokens</h2>
-                <table id="tokensTable"><thead><tr><th>No.</th><th>Lexema</th><th>Tipo</th><th>Línea</th><th>Columna</th></tr></thead><tbody id="tokensTableBody"></tbody></table>
-            </div>
-            <div id="errors" class="tab-pane">
-                <h2>Errores</h2>
-                <table id="errorsTable"><thead><tr><th>No.</th><th>Lexema</th><th>Tipo</th><th>Descripción</th><th>Línea</th><th>Columna</th></tr></thead><tbody id="errorsTableBody"></tbody></table>
-            </div>
-            <div id="standings" class="tab-pane">
-                <h2>Posiciones</h2>
-                <table id="standingsTable"><thead><tr><th>Pos.</th><th>Equipo</th><th>PJ</th><th>PG</th><th>PP</th><th>GF</th><th>GC</th><th>Dif.</th><th>Fase</th></tr></thead><tbody id="standingsTableBody"></tbody></table>
-            </div>
-            <div id="scorers" class="tab-pane">
-                <h2>Goleadores</h2>
-                <table id="scorersTable"><thead><tr><th>Pos.</th><th>Jugador</th><th>Equipo</th><th>Goles</th><th>Minutos</th></tr></thead><tbody id="scorersTableBody"></tbody></table>
-            </div>
-            <div id="info" class="tab-pane">
-                <h2>Info General</h2>
-                <table id="infoTable"><thead><tr><th>Estadística</th><th>Valor</th></tr></thead><tbody id="infoTableBody"></tbody></table>
-            </div>
-            <div id="graphviz" class="tab-pane">
-                <h2>Graphviz (.dot)</h2>
-                <button id="downloadDotBtn" disabled>Descargar .dot</button>
-                <pre id="dotContent"></pre>
-            </div>
+
+        <!-- Mensaje de éxito -->
+        <div id="successMessage" class="success-message">
+            ¡Análisis completado! Usa los botones de arriba para generar tus reportes.
         </div>
     </div>
 
+    <!-- Scripts -->
     <script src="../src/Token.js"></script>
     <script src="../src/lexer.js"></script>
     <script src="../src/tournament.js"></script>
